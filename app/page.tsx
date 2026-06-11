@@ -263,30 +263,30 @@ export default function HomePage() {
   return (
     <main className="flex h-full flex-col">
       {/* Categories Header */}
-      <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
-        <div className="flex gap-8 overflow-x-auto px-6">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`relative py-4 text-sm font-medium whitespace-nowrap transition-colors ${
-                activeCategory === category
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {category}
+      <div className="sticky top-16 z-30 border-b bg-background/95 backdrop-blur">
+  <div className="flex gap-8 overflow-x-auto px-6">
+    {categories.map((category) => (
+      <button
+        key={category}
+        onClick={() => setActiveCategory(category)}
+        className={`relative py-4 text-sm font-medium whitespace-nowrap transition-colors ${
+          activeCategory === category
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {category}
 
-              {activeCategory === category && (
-                <span className="absolute bottom-0 left-0 h-0.5 w-full bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+        {activeCategory === category && (
+          <span className="absolute bottom-0 left-0 h-0.5 w-full rounded-full bg-primary" />
+        )}
+      </button>
+    ))}
+  </div>
+</div>
 
       {/* Feed */}
-      <div className="mx-auto w-full max-w-3xl space-y-4 p-6">
+      <div className="mx-auto w-full  space-y-4 p-6">
         {posts.map((post) => {
           const liked = likedPosts.includes(post.id);
           const saved = savedPosts.includes(post.id);

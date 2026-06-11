@@ -1,101 +1,157 @@
+"use client";
+
 import Link from "next/link";
-import { Search, TrendingUp, Hash } from "lucide-react";
+import {
+  Search,
+  TrendingUp,
+  Hash,
+  Users,
+  Flame,
+  UserPlus,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
-const hashtags = [
-  "nextjs",
-  "react",
-  "typescript",
-  "tailwind",
-  "shadcn",
-  "opensource",
+const trendingTopics = [
+  "Artificial Intelligence",
+  "Cybersecurity",
+  "Startups",
+  "Programming",
+  "Remote Work",
 ];
 
-const topPosts = [
-  {
-    title: "Best practices for App Router in 2025",
-    href: "/posts/1",
-  },
-  {
-    title: "Building a Reddit clone with Next.js",
-    href: "/posts/2",
-  },
-  {
-    title: "Server Actions vs API Routes",
-    href: "/posts/3",
-  },
+const communities = [
+  { name: "Technology", members: "12.3k" },
+  { name: "AI", members: "8.4k" },
+  { name: "Bug Bounty", members: "5.9k" },
+  { name: "Startups", members: "4.1k" },
+];
+
+const suggestedUsers = [
+  { name: "Sarah Chen", username: "@sarah" },
+  { name: "Alex Morgan", username: "@alex" },
+  { name: "Michael Ross", username: "@michael" },
 ];
 
 export function RightSidebar() {
   return (
-    <aside className="sticky top-20 w-80 shrink-0 space-y-4">
-      {/* Search */}
-      <Card>
+    <aside className="sticky top-20 w-full space-y-4">
+      <Card className="shadow-sm">
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search discussions..."
-              className="pl-9"
-            />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search discussions..." className="pl-9" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Trending Hashtags */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Hash className="h-4 w-4" />
-            Trending Hashtags
+            <Users className="h-4 w-4" />
+            Community
           </CardTitle>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xl font-bold">18.2k</p>
+              <p className="text-xs text-muted-foreground">Members</p>
+            </div>
+            <div>
+              <p className="text-xl font-bold">438</p>
+              <p className="text-xs text-muted-foreground">Online</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Flame className="h-4 w-4" />
+            Trending
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {hashtags.map((tag) => (
+            {trendingTopics.map((topic) => (
               <Badge
-                key={tag}
+                key={topic}
                 variant="secondary"
-                className="cursor-pointer"
+                className="cursor-pointer rounded-full px-3 py-1"
               >
-                #{tag}
+                {topic}
               </Badge>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Top Posts */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Top Posts
+            Popular Communities
           </CardTitle>
         </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {communities.map((community) => (
+              <Link
+                key={community.name}
+                href={`/c/${community.name.toLowerCase().replace(/\s+/g, "-")}`}
+                className="flex items-center justify-between rounded-lg px-2 py-2 text-sm transition-colors hover:bg-muted"
+              >
+                <span className="font-medium">{community.name}</span>
+                <span className="text-muted-foreground">
+                  {community.members}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserPlus className="h-4 w-4" />
+            Who to Follow
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {topPosts.map((post, index) => (
-              <Link
-                key={post.href}
-                href={post.href}
-                className="group block"
+            {suggestedUsers.map((user) => (
+              <div
+                key={user.username}
+                className="flex items-center gap-3"
               >
-                <div className="flex gap-3">
-                  <span className="text-muted-foreground text-sm font-medium">
-                    {index + 1}
-                  </span>
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback>{user.name[0]}</AvatarFallback>
+                </Avatar>
 
-                  <p className="group-hover:text-primary text-sm leading-relaxed transition-colors">
-                    {post.title}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {user.username}
                   </p>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </CardContent>
