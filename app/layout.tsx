@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
+
+import { cn } from "@/lib/utils";
+import { Navbar } from "@/components/base/Navbar";
+import { Providers } from "@/components/base/providers";
+import { LeftSidebar } from "@/components/base/LeftSidebar";
+import { RightSidebar } from "@/components/base/RightSidebar";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +36,38 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={cn(
+        "h-full",
+        "antialiased",
+        "font-sans",
+        dmSans.variable,
+        geistSans.variable,
+        geistMono.variable
+      )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>
+          <Navbar />
+
+          <main className="flex-1">
+            <div className="mx-auto flex w-full max-w-7xl gap-6 px-4 md:px-6 lg:px-8">
+              {/* Left Sidebar */}
+              <aside className="hidden lg:block">
+                <LeftSidebar />
+              </aside>
+
+              {/* Page Content */}
+              <div className="min-w-0 flex-1">
+                {children}
+              </div>
+              <div className="hidden xl:block">
+                <RightSidebar />
+              </div>
+            </div>
+          </main>
+        </Providers>
+      </body>
     </html>
   );
 }
