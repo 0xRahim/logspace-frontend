@@ -6,11 +6,41 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-type PostType = "text" | "image" | "gallery" | "video";
+// ── API types ─────────────────────────────────────────────────────────────────
+
+interface ApiPost {
+  id: string;
+  author_id: string;
+  parent_id: string | null;
+  type: "text" | "image" | "gallery" | "video" | "preview";
+  category: string | null;
+  title: string | null;
+  content: string | null;
+  media_urls: string[];
+  thumbnail_url: string | null;
+  likes_count: number;
+  replies_count: number;
+  created_at: string;
+  author_username: string;
+  author_name: string;
+  author_avatar: string | null;
+  hashtags: string[];
+  is_liked: boolean;
+  is_saved: boolean;
+}
+
+interface ApiPostResponse {
+  post: ApiPost;
+  replies: ApiPost[];
+}
+
+// ── Shape used by the UI (mirrors the old static type) ───────────────────────
+
+type PostType = "text" | "image" | "gallery" | "video" | "preview";
 
 type Post = {
-  id: number;
-  parentId: number | null;
+  id: string;
+  parentId: string | null;
   type: PostType;
   author: string;
   username: string;
@@ -23,66 +53,76 @@ type Post = {
   media?: string | string[];
 };
 
-const posts: Post[] = [
-  {
-    id: 1,
-    parentId: null,
-    type: "text",
-    author: "Sarah Chen",
-    username: "@sarah",
-    category: "AI",
-    title: "The future of AI agents is closer than we think",
-    content:
-      "Multi-agent workflows are becoming increasingly capable. The next wave of applications will focus on collaboration, memory, and autonomous task execution.",
-    createdAt: "2h ago",
-    likes: 248,
-    replies: 4,
-  },
-  {
-    id: 2,
-    parentId: 1,
-    type: "image",
-    author: "Alex Morgan",
-    username: "@alex",
-    category: "AI",
-    content: "This chart explains the shift really well.",
-    createdAt: "1h ago",
-    likes: 41,
-    replies: 0,
-    media: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80",
-  },
-  {
-    id: 3,
-    parentId: 1,
-    type: "gallery",
-    author: "Emma Watson",
-    username: "@emma",
-    category: "AI",
-    content: "A few screenshots from a prototype I tested this week.",
-    createdAt: "58m ago",
-    likes: 29,
-    replies: 0,
-    media: [
-      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80",
-      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80",
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80",
-      "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=1200&q=80",
-    ],
-  },
-  {
-    id: 4,
-    parentId: 1,
-    type: "video",
-    author: "Nina Patel",
-    username: "@nina",
-    category: "AI",
-    content: "Quick demo of the workflow in action.",
-    createdAt: "35m ago",
-    likes: 35,
-    replies: 0,
-    media: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1600&q=80",
-  },
-];
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+/** Fetch a post + its replies from the API. Returns null on 404. */
+async function fetchPost(id: string): Promise<ApiPostResponse | null> {
+  const res = await fetch(`${BASE_URL}/api/posts/${id}`, {
+    // Revalidate every 60 s so fresh likes/replies show up
+    next: { revalidate: 60 },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch post: ${res.status}`);
+
+  return res.json() as Promise<ApiPostResponse>;
+}
+
+/** Convert an ISO / SQLite datetime to a human-friendly relative string. */
+function relativeTime(raw: string): string {
+  // SQLite stores "YYYY-MM-DD HH:MM:SS" — replace space with T for Date parsing
+  const date = new Date(raw.replace(" ", "T") + "Z");
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+
+  if (diffMin < 1)  return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** Map an ApiPost → the Post shape the UI components consume. */
+function toPost(api: ApiPost): Post {
+  // Resolve the media field the existing MediaBlock expects:
+  //   image   → single string (first URL)
+  //   gallery → string array
+  //   video   → thumbnail_url (with play overlay), fallback to first media_url
+  //   preview → treat like image if there's a URL
+  let media: string | string[] | undefined;
+
+  if (api.type === "gallery") {
+    media = api.media_urls.length ? api.media_urls : undefined;
+  } else if (api.type === "video") {
+    // Show thumbnail with play button; fall back to first media_url if no thumbnail
+    const thumb = api.thumbnail_url ?? api.media_urls[0] ?? undefined;
+    media = thumb;
+  } else if (api.type === "image" || api.type === "preview") {
+    media = api.media_urls[0] ?? undefined;
+  }
+
+  return {
+    id:        api.id,
+    parentId:  api.parent_id,
+    type:      api.type === "preview" ? "image" : api.type, // render preview as image card
+    author:    api.author_name,
+    username:  `@${api.author_username}`,
+    category:  api.category ?? "General",
+    title:     api.title ?? undefined,
+    content:   api.content ?? "",
+    createdAt: relativeTime(api.created_at),
+    likes:     api.likes_count,
+    replies:   api.replies_count,
+    media,
+  };
+}
 
 function getInitials(name: string) {
   return name
@@ -92,6 +132,8 @@ function getInitials(name: string) {
     .join("")
     .toUpperCase();
 }
+
+// ── Sub-components (identical to original) ────────────────────────────────────
 
 function MediaBlock({ post }: { post: Post }) {
   if (!post.media) return null;
@@ -112,10 +154,7 @@ function MediaBlock({ post }: { post: Post }) {
     return (
       <div className="mt-4 grid grid-cols-2 gap-2">
         {post.media.map((src, index) => (
-          <div
-            key={index}
-            className="overflow-hidden rounded-xl border"
-          >
+          <div key={index} className="overflow-hidden rounded-xl border">
             <img
               src={src}
               alt={`${post.author} gallery ${index + 1}`}
@@ -148,13 +187,7 @@ function MediaBlock({ post }: { post: Post }) {
   return null;
 }
 
-function PostCard({
-  post,
-  isRoot = false,
-}: {
-  post: Post;
-  isRoot?: boolean;
-}) {
+function PostCard({ post, isRoot = false }: { post: Post; isRoot?: boolean }) {
   return (
     <Card className={isRoot ? "border-border/80" : "border-border/60"}>
       <CardHeader className="pb-3">
@@ -167,9 +200,7 @@ function PostCard({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium">{post.author}</p>
-                <span className="text-sm text-muted-foreground">
-                  {post.username}
-                </span>
+                <span className="text-sm text-muted-foreground">{post.username}</span>
                 <Badge variant="secondary" className="text-xs">
                   {post.category}
                 </Badge>
@@ -186,9 +217,7 @@ function PostCard({
 
       <CardContent className="space-y-4">
         {post.title ? (
-          <h1 className="text-xl font-semibold tracking-tight">
-            {post.title}
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight">{post.title}</h1>
         ) : null}
 
         <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
@@ -217,6 +246,8 @@ function PostCard({
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default async function PostPage({
   params,
 }: {
@@ -224,15 +255,12 @@ export default async function PostPage({
 }) {
   const { slug } = await params;
 
-  const rootPost = posts.find(
-    (post) => post.parentId === null && String(post.id) === slug
-  );
+  const data = await fetchPost(slug);
 
-  if (!rootPost) {
-    notFound();
-  }
+  if (!data) notFound();
 
-  const replies = posts.filter((post) => post.parentId === rootPost.id);
+  const rootPost  = toPost(data.post);
+  const replies   = data.replies.map(toPost);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
