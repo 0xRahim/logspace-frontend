@@ -1,18 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-
-  /* config options here */
-
   images: {
     remotePatterns: [
       {
+        // Allow any HTTPS hostname — needed because post media_urls and
+        // avatar_url fields are user-supplied and can come from any domain.
         protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i.pravatar.cc",
+        hostname: "**",
       },
     ],
   },
