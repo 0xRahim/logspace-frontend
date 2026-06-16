@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -85,15 +85,9 @@ interface CreatePostPayload {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-const initialCategories = [
-  "Technology",
-  "AI",
-  "Design",
-  "Business",
-  "Travel",
-  "Startups",
-  "Security",
-  "Open Source",
+const FALLBACK_CATEGORIES = [
+  "Technology", "AI", "Design", "Business",
+  "Travel", "Startups", "Security", "Open Source",
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -236,11 +230,22 @@ export default function CreateThreadPage() {
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [categoryInput, setCategoryInput] = useState("Technology");
-  const [categories, setCategories] = useState(initialCategories);
+  const [categoryInput, setCategoryInput] = useState("");
+  const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
   const [tagsInput, setTagsInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Fetch real categories from API on mount
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/categories`)
+      .then((r) => r.json())
+      .then((data) => {
+        const names: string[] = (data.categories ?? []).map((c: { name: string }) => c.name);
+        if (names.length) setCategories(names);
+      })
+      .catch(() => {});
+  }, []);
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -424,7 +429,7 @@ export default function CreateThreadPage() {
                   <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 </div>
 
-                {dropdownOpen && filteredCategories.length > 0 && (
+                {dropdownOpen && (filteredCategories.length > 0 || (!categoryExists && categoryInput.trim())) && (
                   <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-background shadow-lg">
                     {filteredCategories.map((cat) => {
                       const active =
@@ -448,14 +453,26 @@ export default function CreateThreadPage() {
                         </button>
                       );
                     })}
+
+                    {/* Create new category option */}
+                    {!categoryExists && categoryInput.trim() && (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          const newCat = categoryInput.trim();
+                          setCategories((prev) => [...prev, newCat]);
+                          setCategoryInput(newCat);
+                          setDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2 border-t px-3 py-2.5 text-left text-sm text-primary hover:bg-primary/5"
+                      >
+                        <Plus className="h-3.5 w-3.5 shrink-0" />
+                        <span>Create <strong>"{categoryInput.trim()}"</strong></span>
+                      </button>
+                    )}
                   </div>
                 )}
-
-                {!categoryExists && categoryInput.trim() ? (
-                  <p className="text-xs text-muted-foreground">
-                    New category will be created with this post.
-                  </p>
-                ) : null}
               </div>
 
               <div className="space-y-2">

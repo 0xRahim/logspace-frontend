@@ -69,7 +69,7 @@ export default function SettingsPage() {
   const [bio,  setBio]            = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
-  const [showAvatarInput, setShowAvatarInput] = useState(false);
+
   const [profileSaving, setProfileSaving]     = useState(false);
   const [profileFeedback, setProfileFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -145,7 +145,6 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error(data.error ?? "Update failed");
       setUser(data.user);
       setProfileFeedback({ type: "success", msg: "Profile updated successfully." });
-      setShowAvatarInput(false);
     } catch (err) {
       setProfileFeedback({ type: "error", msg: err instanceof Error ? err.message : "Update failed" });
     } finally {
@@ -305,34 +304,24 @@ export default function SettingsPage() {
             {profileFeedback && <Feedback type={profileFeedback.type} message={profileFeedback.msg} />}
 
             {/* Avatar */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative group">
-                <Avatar className="h-28 w-28 border">
-                  <AvatarImage src={avatarUrl || undefined} />
-                  <AvatarFallback className="text-2xl">{name?.[0] ?? "?"}</AvatarFallback>
-                </Avatar>
-                <button
-                  onClick={() => setShowAvatarInput((v) => !v)}
-                  className="absolute bottom-2 right-2 bg-background border shadow-sm rounded-full p-2 opacity-90 hover:opacity-100 transition"
-                  title="Change avatar URL"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
+            <div className="flex items-center gap-6">
+              <Avatar className="h-20 w-20 shrink-0 border">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback className="text-2xl">{name?.[0] ?? "?"}</AvatarFallback>
+              </Avatar>
+
+              <div className="flex-1 space-y-1">
+                <label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Camera className="h-3.5 w-3.5" />
+                  Avatar image URL
+                </label>
+                <Input
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                />
+                <p className="text-xs text-muted-foreground">Paste any image URL — updates live in the preview.</p>
               </div>
-
-              {showAvatarInput && (
-                <div className="w-full max-w-sm space-y-1">
-                  <label className="text-xs text-muted-foreground">Avatar image URL</label>
-                  <Input
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    autoFocus
-                  />
-                </div>
-              )}
-
-              <p className="text-xs text-muted-foreground">Click the camera icon to set an avatar URL</p>
             </div>
 
             {/* Form */}
